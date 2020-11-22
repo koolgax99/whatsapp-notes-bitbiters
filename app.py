@@ -9,6 +9,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://rsmzlhyxcgokna:7888f898f4ca6cf9ded4ced4749198d58622f1049250d7e012e35966c6836a47@ec2-54-156-85-145.compute-1.amazonaws.com:5432/derh9045bmvb8c'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+
 def isWordPresent(sentence, word):
     s = sentence.split(" ")
     for i in s:
@@ -16,7 +17,9 @@ def isWordPresent(sentence, word):
             return True
     return False
 
+
 db = SQLAlchemy(app)
+
 
 class Note(db.Model):
     __tablename__ = 'notes'
@@ -24,14 +27,14 @@ class Note(db.Model):
     message = db.Column(db.Text())
     number = db.Column(db.String)
 
-    def __init__(self,message, number):
+    def __init__(self, message, number):
         self.message = message
         self.number = number
 
 
 @app.route("/")
 def hello():
-    return "Hello, World!"
+    return render_template("/index.html")
 
 
 @app.route("/sms", methods=['POST'])
@@ -43,8 +46,7 @@ def sms_reply():
 
     # Create reply
     resp = MessagingResponse()
-    resp.message("You said: {}".format(msg))
-
+    resp.message("Did you just say:{} ".format(msg))
 
     print(msg)
     now = datetime.now()
@@ -58,21 +60,29 @@ def sms_reply():
         data = Note(message, number)
         db.session.add(data)
         db.session.commit()
-        resp.message("Your note has been saved in the db.")
+        resp.message("Okay, I noted down your point.")
     else:
         print("No notes\n")
 
     return str(resp)
 
-@app.route("/note/<number>")
-def notes(number):
-    note = Note.query.filter_by(number=number).first()
 
-    if note is None:
-        return "No user found"
+@app.route("/note", methods=['POST'])
+def notes():
+    number = request.form['number']
+    phone = "whatsapp:+91" + str(number)
+    notes = Note.query.filter_by(number=phone).all()
+    print(notes)
+
+
+    if notes is None:
+        msg = "No notes found"
     else:
-        return note.message
+        for i in range(len(notes)):
+            print(notes[i].message)
+            msg = notes[i].message
 
+    return render_template("/note.html",  notes = notes)
 
 
 if __name__ == "__main__":
